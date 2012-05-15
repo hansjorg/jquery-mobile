@@ -1,46 +1,37 @@
 (function($){
 
-	asyncTest( "Opening a second popup causes the first one to close", function() {
+	asyncTest( "Opening two popups and calling 'Back' causes them both to close", function() {
 		var initialHRef = location.href;
 
-		expect( 5 );
+		expect( 7 );
 
 		$.testHelper.detailedEventCascade([
 			function() {
 				$( "#test-popup" ).popup( "open" );
-			},
-
-			{
-				opened: { src: $( "#test-popup" ), event: "opened.openAnotherStep1" },
-				hashchange: { src: $( window ), event: "hashchange.openAnotherStep1" }
-			},
-
-			function() {
 				$( "#test-popup-2" ).popup( "open" );
 			},
-
 			{
-				hashchange: { src: $( window ), event: "hashchange.openAnotherStep2" },
-				closed: { src: $( "#test-popup" ), event: "closed.openAnotherStep2" },
-				opened: { src: $( "#test-popup-2" ), event: "opened.openAnotherStep2" }
+				opened1: { src: $( "#test-popup" ), event: "opened.stackCloseStep1Popup1" },
+				opened2: { src: $( "#test-popup-2" ), event: "opened.stackCloseStep1Popup2" },
+				hashchange: { src: $( window ), event: "hashchange.stackCloseStep1" }
 			},
-
 			function( result ) {
-				ok( result.closed.idx < result.opened.idx && result.closed.idx !== -1, "'closed' signal arrived before 'opened' signal" );
-				ok( result.hashchange.timedOut, "There were no hashchange events" );
-				$( "#test-popup-2" ).popup( "close" );
+				ok( !result.opened1.timedOut, "#test-popup opened" );
+				ok( !result.opened2.timedOut, "#test-popup-2 opened" );
+				ok( !result.hashchange.timedOut, "hashchange happened" );
+				window.history.back();
 			},
-
 			{
-				closed: { src: $( "#test-popup-2" ), event: "closed.openAnotherStep3" },
-				hashchange: { src: $( window ), event: "hashchange.openAnotherStep3" }
+				closed1: { src: $( "#test-popup" ), event: "closed.stackCloseStep2Popup1" },
+				closed2: { src: $( "#test-popup" ), event: "closed.stackCloseStep2Popup2" },
+				hashchange: { src: $( window ), event: "hashchange.stackCloseStep2" }
 			},
-
 			function( result ) {
-				ok( !result.closed.timedOut, "'closed' signal was received" );
-				ok( !result.hashchange.timedOut, "'hashchange' signal was received" );
-				ok( initialHRef === location.href, "location is unchanged" );
-				start();
+				ok( !result.closed1.timedOut, "#test-popup closed" );
+				ok( !result.closed2.timedOut, "#test-popup-2 closed" );
+				ok( !result.hashchange.timedOut, "hashchange happened" );
+				ok( location.href === initialHRef, "Location has not changed" );
+				setTimeout( function() { start(); }, 300 );
 			}
 		]);
 	});
