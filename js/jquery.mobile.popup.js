@@ -336,7 +336,7 @@ define( [ "jquery",
 		_actionQueue: [],
 		_inProgress: false,
 		_haveNavHook: false,
-		_currentlyOpenPopup: null,
+		_currentlyOpenPopups: [],
 		_myOwnHashChange: false,
 
 		// Call _onHashChange if the hash changes /after/ the popup is on the screen
@@ -400,7 +400,12 @@ define( [ "jquery",
 			var self = this,
 			    current = self._actionQueue.shift();
 
-			self._currentlyOpenPopup = ( current.open ? current.popup : null );
+			if ( current.open ) {
+				self._currentlyOpenPopups.push( current.popup );
+			}
+			else {
+				self._currentlyOpenPopups.splice( $.inArray( current.popup, self._currentlyOpenPopups ), 1 );
+			}
 
 			if ( self._actionQueue.length === 0 && !current.open && self._haveNavHook ) {
 					self._haveNavHook = false;
@@ -421,12 +426,6 @@ define( [ "jquery",
 			    signal, fn, args;
 
 			if ( self._actionQueue[0].open ) {
-				if ( self._currentlyOpenPopup ) {
-					self._actionQueue.unshift( { open: false, popup: self._currentlyOpenPopup } );
-					self._inProgress = false;
-					self._runSingleAction();
-					return;
-				}
 				signal = "opened";
 				fn = "_realOpen";
 				args = self._actionQueue[0].args;
@@ -464,7 +463,7 @@ define( [ "jquery",
 			    idx = self._inArray( newAction );
 
 			if ( -1 === idx ) {
-				if ( self._currentlyOpenPopup === popup ) {
+				if ( $.inArray( popup, self._currentlyOpenPopups ) >= 0 ) {
 					var closeAction = { open: false, popup: popup },
 					    cIdx = self._inArray( closeAction );
 
@@ -504,7 +503,7 @@ define( [ "jquery",
 					}
 				}
 				else
-				if ( self._currentlyOpenPopup === popup ) {
+				if ( $.inArray( popup, self._currentlyOpenPopups ) >= 0 ) {
 					if ( self._actionQueue.length === 0 ) {
 						self._actionQueue.push( newAction );
 						self._runSingleAction();
@@ -525,17 +524,18 @@ define( [ "jquery",
 				this._inProgress = false;
 			}
 			else {
-				var offset, ac;
+				var self = this;
 
 				if ( this._inProgress ) {
-					offset = 1;
-					ac = ( this._actionQueue[0].open ? { open: false, popup: this._actionQueue[0].popup } : undefined );
+					this._actionQueue.splice( 1, this._actionQueue.length - 1,
+						( this._actionQueue[0].open ? { open: false, popup: this._actionQueue[0].popup } : undefined ) );
 				}
 				else {
-					offset = 0,
-					ac = ( this._currentlyOpenPopup ? { open: false, popup: this._currentlyOpenPopup } : undefined );
+					this._actionQueue = [];
 				}
-				this._actionQueue.splice( offset, this._actionQueue.length - offset, ac );
+				$.each( this._currentlyOpenPopups, function( idx, val ) {
+					self._actionQueue.push( { open: false, popup: val } );
+				});
 			}
 
 			if ( this._actionQueue.length > 0 ) {
