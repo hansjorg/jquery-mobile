@@ -338,6 +338,7 @@ define( [ "jquery",
 		_haveNavHook: false,
 		_currentlyOpenPopups: [],
 		_myOwnHashChange: false,
+		_zIndex: { screen: 0, container: 0 },
 
 		// Call _onHashChange if the hash changes /after/ the popup is on the screen
 		// Note that placing the popup on the screen can itself cause a hashchange,
@@ -421,6 +422,29 @@ define( [ "jquery",
 			}
 		},
 
+		_setZIndex: function( popup ) {
+			var self = this;
+
+			function realSetZIndex( element ) {
+				var current = popup._ui[ element ].css( "z-index" );
+
+				if ( self._zIndex[ element ] >= current ) {
+					current = ++self._zIndex[ element ];
+				}
+				else {
+					self._zIndex[ element ] = current;
+					current = undefined;
+				}
+
+				if ( current ) {
+					popup._ui[ element ].css( "z-index", current );
+				}
+			}
+
+			realSetZIndex( "screen" );
+			realSetZIndex( "container" );
+		},
+
 		_continueWithAction: function() {
 			var self = this,
 			    signal, fn, args;
@@ -429,6 +453,7 @@ define( [ "jquery",
 				signal = "opened";
 				fn = "_realOpen";
 				args = self._actionQueue[0].args;
+				self._setZIndex( self._actionQueue[0].popup );
 			}
 			else {
 				signal = "closed";
@@ -459,7 +484,7 @@ define( [ "jquery",
 
 		push: function( popup, args ) {
 			var self = this,
-			    newAction = { open: true, popup: popup, args: args },
+	 		    newAction = { open: true, popup: popup, args: args },
 			    idx = self._inArray( newAction );
 
 			if ( -1 === idx ) {
@@ -537,6 +562,9 @@ define( [ "jquery",
 					self._actionQueue.push( { open: false, popup: val } );
 				});
 			}
+
+			this._zIndex.screen = 0;
+			this._zIndex.container = 0;
 
 			if ( this._actionQueue.length > 0 ) {
 				this._runSingleAction() ;
